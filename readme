@@ -1,0 +1,9 @@
+
+PS2Discord - Single user bridge between Discord and Pokemon Showdown
+
+To use, copy `config-example.json` to `config.json` and fill in details.
+Using an unregistered pokemon showdown account is (currently) not supported.
+
+Note that this is a single user bridge. The discord bot should not be in any
+servers except one containing only the owner. No permission or ownership checks
+are performed.
