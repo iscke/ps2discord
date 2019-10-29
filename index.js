@@ -45,19 +45,23 @@ class PS2Discord {
         ]));
 
         // setup ps
-        this.showdownClient = new PS(Config.showdownCredentials);
-        this.showdownClient.on('room', async roomid => {
-            // create a room without doing anything
-            (await this.getRoomChannel(roomid)).send(`Joined.`);
-        });
-        this.showdownClient.on('chat', async (roomid, from, message) => {
-            (await this.getRoomChannel(roomid)).send(`${from}: ${message}`);
-        });
-        this.showdownClient.on('pm', async (from, message) => {
-            (await this.getPmChannel(from)).send(message);
-        });
-        this.showdownClient.on('global', async message => {
-            this.metaChannel.send(message);
+        this.showdownClient = new PS(Config.showdownCredentials, {
+            onRoom: async (roomid) => {
+                // create a room without doing anything
+                (await this.getRoomChannel(roomid)).send(`Joined.`);
+            },
+            onChat: async (roomid, from, message) => {
+                (await this.getRoomChannel(roomid)).send(`${from}: ${message}`);
+            },
+            onError: async (roomid, error) => {
+                (await this.getRoomChannel(roomid)).send(`ERROR: ${error}`);
+            },
+            onPM: async (from, message) => {
+                (await this.getPmChannel(from)).send(message);
+            },
+            onRename: async (name) => {
+                this.metaChannel.send(`Renamed to: ${name}`);
+            },
         });
     }
     /**

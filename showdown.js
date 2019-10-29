@@ -5,14 +5,13 @@ const websocket = require('websocket');
 // todo - what the hell, why am i using this?
 const axios = require('axios').default;
 const qs = require('querystring');
-const {EventEmitter} = require('events');
 
-module.exports = class extends EventEmitter {
+module.exports = class Showdown {
     /**
     * @param {{name: string, pass: string}} credentials
+    * @param {Partial<Showdown>} handlers
     */
-    constructor(credentials) {
-        super();
+    constructor(credentials, handlers = {}) {
         /** @type {string} ts bug? */
         this.name = '';
         this.userid = '';
@@ -22,6 +21,20 @@ module.exports = class extends EventEmitter {
         client.on('connect', this.onConnect.bind(this));
         client.on('connectFailed', this.onConnectFailed.bind(this));
         client.connect('ws://sim.smogon.com/showdown/websocket');
+
+        const noop = () => {};
+        /** @type {(roomid: string, from: string, message: string) => void} */
+        this.onChat = noop;
+        /** @type {(roomid: string, message: string) => void} */
+        this.onError = noop;
+        /** @type {(from: string, message: string) => void} */
+        this.onPM = noop;
+        /** @type {(roomid: string, title: string) => void} */
+        this.onRoom = noop;
+        /** @type {(name: string) => void} */
+        this.onRename = noop;
+
+        Object.assign(this, handlers);
     }
     /**
      * @param {websocket.connection} connection
@@ -50,27 +63,31 @@ module.exports = class extends EventEmitter {
                 this.tryLogin();
                 break;
             case 'pm': 
-                this.emit('pm', parts[2], parts.slice(4).join('|'));
+                this.onPM(parts[2], parts.slice(4).join('|'));
                 break;
             case 'c:':
                 parts.shift();
                 // falls through
-            case 'c': 
-                this.emit('chat', roomid, parts[2], parts.slice(3).join('|'));
+            case 'c':
+                if (toID(parts[2]) === this.userid) break;
+                this.onChat(roomid, parts[2], parts.slice(3).join('|'));
                 break;
             case 'error':
-                this.emit('chat', roomid, `ERROR: ${parts.slice(1)}`);
+                this.onError(roomid, `${parts.slice(1)}`);
                 break;
             case 'title':
-                this.emit('room', roomid, parts[2]);
+                this.onRoom(roomid, parts[2]);
                 return; // stop parsing
             case 'popup':
-                this.emit('chat', 'global', parts.slice(1).join('|'));
+                this.onChat('global', 'POPUP', parts.slice(1).join('|'));
                 break;
             case 'updateuser':
                 const name = parseName(parts[2])[1];
-                if (this.name !== name) this.emit('global', `Renamed to ${name}`);
+                console.log(parseName(parts[2]))
+                console.log(parts)
+                if (this.name !== name) this.onRename(name);
                 this.name = name;
+                this.userid = toID(name);
                 break;
             default:
                 console.log(`unhandled message: ${JSON.stringify(parts)}`);
@@ -106,7 +123,6 @@ module.exports = class extends EventEmitter {
      */
     onConnectFailed(...args) {
         console.log(`ERROR: ${args}`);
-        this.emit('global', `ERROR: ${args}`);
+        this.onError('global', `${args}`);
     }
-
 }
