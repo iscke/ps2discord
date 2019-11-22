@@ -24,17 +24,17 @@ module.exports = class Showdown {
 
         const noop = () => {};
         /** @type {(roomid: string, from: string, message: string) => void} */
-        this.onChat = noop;
+        this.onChat = handlers.onChat || noop;
         /** @type {(roomid: string, message: string) => void} */
-        this.onError = noop;
-        /** @type {(from: string, message: string) => void} */
-        this.onPM = noop;
+        this.onError = handlers.onError || noop;
+        /** @type {(otherPerson: string, from: string, message: string) => void} */
+        this.onPM = handlers.onPM || noop;
         /** @type {(roomid: string, title: string) => void} */
-        this.onRoom = noop;
+        this.onRoom = handlers.onRoom || noop;
+        /** @type {(roomid: string) => void} */
+        this.onRoomDeinit = handlers.onRoomDeinit || noop;
         /** @type {(name: string) => void} */
-        this.onRename = noop;
-
-        Object.assign(this, handlers);
+        this.onRename = handlers.onRename || noop;
     }
     /**
      * @param {websocket.connection} connection
@@ -63,7 +63,9 @@ module.exports = class Showdown {
                 this.tryLogin();
                 break;
             case 'pm': 
-                this.onPM(parts[2], parts.slice(4).join('|'));
+                const otherPerson = toID(parts[2]) !== this.userid ? parts[2] : parts[3];
+                const from = parts[2];
+                this.onPM(otherPerson, from, parts.slice(4).join('|'));
                 break;
             case 'c:':
                 parts.shift();
@@ -83,11 +85,21 @@ module.exports = class Showdown {
                 break;
             case 'updateuser':
                 const name = parseName(parts[2])[1];
-                console.log(parseName(parts[2]))
-                console.log(parts)
                 if (this.name !== name) this.onRename(name);
                 this.name = name;
                 this.userid = toID(name);
+                break;
+            case 'deinit':
+                this.onRoomDeinit(roomid);
+                break;
+            // don't care
+            case 'j': case 'J': case 'join':
+            case 'l': case 'L': case 'leave':
+            case 'n': case 'N':
+            case 'formats':
+            case 'updatesearch':
+            case 'updatechallenges':
+            case 'init':
                 break;
             default:
                 console.log(`unhandled message: ${JSON.stringify(parts)}`);

@@ -56,11 +56,14 @@ class PS2Discord {
             onError: async (roomid, error) => {
                 (await this.getRoomChannel(roomid)).send(`ERROR: ${error}`);
             },
-            onPM: async (from, message) => {
-                (await this.getPmChannel(from)).send(message);
+            onPM: async (otherPerson, from, message) => {
+                (await this.getPmChannel(otherPerson)).send(`${from}: ${message}`);
             },
             onRename: async (name) => {
                 this.metaChannel.send(`Renamed to: ${name}`);
+            },
+            onRoomDeinit: async (roomid) => {
+                (await this.getRoomChannel(roomid)).send(`Room closed.`);
             },
         });
     }
