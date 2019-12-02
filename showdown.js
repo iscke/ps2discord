@@ -1,5 +1,7 @@
 'use strict';
 
+// @ts-ignore local file
+const Config = require('./config');
 const {toID, parseName} = require('./tools');
 const websocket = require('websocket');
 // todo - what the hell, why am i using this?
@@ -45,6 +47,7 @@ module.exports = class Showdown {
         connection.on('message', this.onMessage.bind(this));
         connection.on('error', this.onConnectFailed.bind(this));
         connection.on('close', this.onConnectFailed.bind(this));
+        if (Config.autojoins.length) this.connection.send(`|/autojoin ${Config.autojoins.join(',')}`)
     }
     /**
      * @param {websocket.IMessage} message

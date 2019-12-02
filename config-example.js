@@ -7,4 +7,5 @@ module.exports = {
     discordToken: "",
     highlightName: true,
     highlightRegex: /your regex here/i,
+    autojoins: [],
 }
