@@ -28,13 +28,19 @@ class PS2Discord {
         /** @type {Discord.TextChannel} */
         this.metaChannel = null;
 
+        /** @type {RegExp | null} */
+        this.nameRegex = null;
+        this.ownerTag = '';
+
         this.discordClient.login(this.token);
     }
     /**
      * @param {Discord.Guild} guild
+     * @param {Discord.User} owner
      */
-    async setup(guild) {
+    async setup(guild, owner) {
         this.guild = guild;
+        this.ownerTag = `<@${owner.id}>`;
         [this.roomsCat, this.pmsCat, this.metaChannel] = (await Promise.all([
             this.getCategory(ROOMS),
             this.getCategory(PMS),
@@ -51,6 +57,9 @@ class PS2Discord {
                 (await this.getRoomChannel(roomid)).send(`Joined.`);
             },
             onChat: async (roomid, from, message) => {
+                if (this.nameRegex) message = message.replace(this.nameRegex, this.ownerTag);
+                if (Config.highlightRegex) message = message.replace(Config.highlightRegex, this.ownerTag);
+
                 (await this.getRoomChannel(roomid)).send(`${from}: ${message}`);
             },
             onError: async (roomid, error) => {
@@ -60,6 +69,7 @@ class PS2Discord {
                 (await this.getPmChannel(otherPerson)).send(`${from}: ${message}`);
             },
             onRename: async (name) => {
+                if (Config.highlightName) this.nameRegex = new RegExp(String.raw`\b${name.replace(/[^a-zA-Z0-9 ]/g, '')}\b`, 'ig');
                 this.metaChannel.send(`Renamed to: ${name}`);
             },
             onRoomDeinit: async (roomid) => {
@@ -76,7 +86,7 @@ class PS2Discord {
         if (message.channel.type !== 'text') return;
         message.delete();
         const channel = /** @type {Discord.TextChannel} */ (message.channel);
-        if (content === 's') return this.setup(message.guild);
+        if (content === 's') return this.setup(message.guild, message.author);
         if (!this.guild) return message.reply(`not setup, use 's'`);
 
         if (channel.parent) {
