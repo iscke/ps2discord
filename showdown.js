@@ -96,9 +96,13 @@ module.exports = class Showdown {
             case 'l': case 'L': case 'leave':
             case 'n': case 'N':
             case 'formats':
-            case 'updatesearch':
-            case 'updatechallenges':
+            case 'updatesearch': case 'updatechallenges':
             case 'init':
+            case 'tempnotify': case 'tempnotifyoff':
+            case 'uhtml': case 'uhtmlchange':
+            case 'html':
+            // ???
+            case '':
                 break;
             default:
                 console.log(`unhandled message: ${JSON.stringify(parts)}`);
