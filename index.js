@@ -74,6 +74,7 @@ class PS2Discord {
         if (message.author.bot) return;
         const content = message.content;
         if (message.channel.type !== 'text') return;
+        message.delete();
         const channel = /** @type {Discord.TextChannel} */ (message.channel);
         if (content === 's') return this.setup(message.guild);
         if (!this.guild) return message.reply(`not setup, use 's'`);
@@ -131,6 +132,5 @@ class PS2Discord {
             || await this.guild.createChannel(name, {type: 'category'});
     }
 }
-
 
 const client = new PS2Discord(Config.discordToken);

@@ -71,7 +71,6 @@ module.exports = class Showdown {
                 parts.shift();
                 // falls through
             case 'c':
-                if (toID(parts[2]) === this.userid) break;
                 this.onChat(roomid, parts[2], parts.slice(3).join('|'));
                 break;
             case 'error':
