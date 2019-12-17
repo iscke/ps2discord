@@ -58,6 +58,7 @@ module.exports = class Showdown {
         let roomid = 'lobby';
         if (lines[0].charAt(0) === '>') roomid = lines.shift().slice(1);
         for (const line of lines) {
+            if (!line) continue;
             const parts = line.split('|');
             switch (parts[1]) {
             case 'challstr':
@@ -108,7 +109,7 @@ module.exports = class Showdown {
             case '':
                 break;
             default:
-                console.log(`unhandled message: ${JSON.stringify(parts)}`);
+                console.log(`unhandled message: ${JSON.stringify(line)}: ${JSON.stringify(message)}`);
             }
         }
     }
