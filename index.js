@@ -2,7 +2,7 @@
 
 const Discord = require('discord.js');
 const PS = require('./showdown');
-const {toID, toRoomID} = require('./tools');
+const {toID, toRoomID, html2text} = require('./tools');
 // @ts-ignore local file
 const Config = require('./config');
 const ROOMS = 'ps-rooms';
@@ -39,6 +39,43 @@ class PS2Discord {
 
         this.discordClient.login(this.token);
     }
+
+    /**
+     * @param {string} from
+     * @param {string} message
+     */
+    processChat(from, message) {
+        if (message.charAt(0) !== '/' || message.charAt(1) === '/') return `${from}: ${message}`;
+
+        const spaceIndex = message.indexOf(' ');
+        const command = message.slice(1, spaceIndex);
+        message = message.slice(spaceIndex + 1);
+
+        console.log(`[${command}]`);
+        switch (command) {
+        case 'me':
+        case 'mee':
+            return `•${from} _${message}_`;
+        case 'invite':
+            return `${from} invites you to join "${message}"`;
+        case 'announce':
+            return `${from} announces: **${message}**`;
+        case 'log':
+            return `[${from}] log: ${message}`;
+        case 'text':
+            return `[${from}] text: ${message.slice()}`
+        case 'error':
+            return `[${from}] ERROR: ${message}`;
+        case 'uhtml': case 'uhtmlchange':
+            message = message.split(',').slice(2).join(',');
+            // falls through
+        case 'html':
+        case 'raw':
+        case 'nonotify':
+            return `[${from}] ${html2text(message)}`;
+        }
+    }
+
     /**
      * @param {Discord.Guild} guild
      * @param {Discord.User} owner
@@ -64,14 +101,16 @@ class PS2Discord {
             onChat: async (roomid, from, message) => {
                 if (this.nameRegex) message = message.replace(this.nameRegex, this.ownerTag);
                 if (Config.highlightRegex) message = message.replace(Config.highlightRegex, this.ownerTag);
-
-                (await this.getRoomChannel(roomid)).send(`${from}: ${message}`);
+                (await this.getRoomChannel(roomid)).send(this.processChat(from, message));
+            },
+            onHTML: async (roomid, message) => {
+                (await this.getRoomChannel(roomid)).send(`[HTML] ${html2text(message)}`);
             },
             onError: async (roomid, error) => {
                 (await this.getRoomChannel(roomid)).send(`ERROR: ${error}`);
             },
             onPM: async (otherPerson, from, message) => {
-                (await this.getPmChannel(otherPerson)).send(`${from}: ${message}`);
+                (await this.getPmChannel(otherPerson)).send(this.processChat(from, message));
             },
             onRename: async (name) => {
                 if (Config.highlightName) this.nameRegex = new RegExp(String.raw`\b${name.replace(/[^a-zA-Z0-9 ]/g, '')}\b`, 'ig');

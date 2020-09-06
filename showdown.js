@@ -11,7 +11,7 @@ const qs = require('querystring');
 module.exports = class Showdown {
     /**
     * @param {{name: string, pass: string}} credentials
-    * @param {Partial<Pick<Showdown, 'onChat' | 'onError' | 'onPM' | 'onRoom' | 'onRoomDeinit' | 'onRename'>>} handlers
+    * @param {Partial<Pick<Showdown, 'onChat' | 'onHTML' | 'onError' | 'onPM' | 'onRoom' | 'onRoomDeinit' | 'onRename'>>} handlers
     */
     constructor(credentials, handlers = {}) {
         /** @type {string} ts bug? */
@@ -27,6 +27,8 @@ module.exports = class Showdown {
         const noop = () => {};
         /** @type {(roomid: string, from: string, message: string) => void} */
         this.onChat = handlers.onChat || noop;
+        /** @type {(roomid: string, message: string) => void} */
+        this.onHTML = handlers.onHTML || noop;
         /** @type {(roomid: string, message: string) => void} */
         this.onError = handlers.onError || noop;
         /** @type {(otherPerson: string, from: string, message: string) => void} */
@@ -59,7 +61,7 @@ module.exports = class Showdown {
         if (lines[0].charAt(0) === '>') roomid = lines.shift().slice(1);
         for (const line of lines) {
             if (!line) continue;
-            const parts = line.split('|');
+            let parts = line.split('|');
             switch (parts[1]) {
             case 'challstr':
                 this.challengeKeyID = parts[2];
@@ -95,6 +97,15 @@ module.exports = class Showdown {
             case 'deinit':
                 this.onRoomDeinit(roomid);
                 break;
+            case 'uhtml': case 'uhtmlchange':
+                parts = parts.slice(2);
+            case 'html':
+                this.onHTML(roomid, parts.slice(1).join('|'));
+                break;
+            case '':
+            case undefined:
+                this.onChat(roomid, '~system', line);
+                break;
             // don't care
             case 'j': case 'J': case 'join':
             case 'l': case 'L': case 'leave':
@@ -103,10 +114,6 @@ module.exports = class Showdown {
             case 'updatesearch': case 'updatechallenges':
             case 'init':
             case 'tempnotify': case 'tempnotifyoff':
-            case 'uhtml': case 'uhtmlchange':
-            case 'html':
-            // ???
-            case '':
                 break;
             default:
                 console.log(`unhandled message: ${JSON.stringify(line)}: ${JSON.stringify(message)}`);
