@@ -11,7 +11,7 @@ const qs = require('querystring');
 module.exports = class Showdown {
     /**
     * @param {{name: string, pass: string}} credentials
-    * @param {Partial<Showdown>} handlers
+    * @param {Partial<Pick<Showdown, 'onChat' | 'onError' | 'onPM' | 'onRoom' | 'onRoomDeinit' | 'onRename'>>} handlers
     */
     constructor(credentials, handlers = {}) {
         /** @type {string} ts bug? */

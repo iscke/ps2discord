@@ -32,6 +32,11 @@ class PS2Discord {
         this.nameRegex = null;
         this.ownerTag = '';
 
+        // if we send a PM that gets an instant response, sometimes PS will reply before discord makes the channel
+        // this lets us wait for channel modifications to complete before doing any more, so we don't get dupes
+        /** @type {Promise<any>} */
+        this.modifyingChannels = Promise.resolve();
+
         this.discordClient.login(this.token);
     }
     /**
@@ -117,29 +122,35 @@ class PS2Discord {
      * @returns {Promise<Discord.TextChannel>}
      */
     async getPmChannel(name) {
+        await this.modifyingChannels;
         name = toID(name);
-        // @ts-ignore
-        return this.pmsCat.children.find(channel => toID(channel.name) === name)
-            || await this.guild.createChannel(name, {type: 'text', parent: this.pmsCat});
+        const channel = this.pmsCat.children.find(channel => toID(channel.name) === name);
+        if (channel) return Promise.resolve(/** @type {Discord.TextChannel} */(channel));
+        this.modifyingChannels = this.guild.createChannel(name, {type: 'text', parent: this.pmsCat});
+        return this.modifyingChannels;
     }
     /**
      * @param {string} name
      * @returns {Promise<Discord.TextChannel>}
      */
     async getRoomChannel(name) {
+        await this.modifyingChannels;
         name = toRoomID(name);
-        // @ts-ignore
-        return this.roomsCat.children.find(channel => toRoomID(channel.name) === name)
-            || await this.guild.createChannel(name, {type: 'text', parent: this.roomsCat});
+        const channel = this.roomsCat.children.find(channel => toRoomID(channel.name) === name);
+        if (channel) return Promise.resolve(/** @type {Discord.TextChannel} */(channel));
+        this.modifyingChannels = this.guild.createChannel(name, {type: 'text', parent: this.roomsCat});
+        return this.modifyingChannels;
     }
     /**
      * @param {string} name
      * @returns {Promise<Discord.CategoryChannel>}
      */
     async getCategory(name) {
-        // @ts-ignore
-        return this.guild.channels.find(channel => channel.type === 'category' && channel.name === name)
-            || await this.guild.createChannel(name, {type: 'category'});
+        await this.modifyingChannels;
+        const channel = this.guild.channels.find(channel => channel.type === 'category' && channel.name === name);
+        if (channel) return Promise.resolve(/** @type {Discord.CategoryChannel} */(channel));
+        this.modifyingChannels = this.guild.createChannel(name, {type: 'category'});
+        return this.modifyingChannels;
     }
 }
 
